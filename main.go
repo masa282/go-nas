@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -34,12 +34,7 @@ func RecvHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		data, err := ioutil.ReadAll(src)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		dst.Write(data)
+		io.Copy(dst, src)
 	}
 
 	fmt.Println("Success!")
@@ -50,12 +45,13 @@ func main() {
 	http.HandleFunc("/recv", RecvHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Someone Acessed!")
-		http.ServeFile(w, r, filepath.Join("html", "recv.html"))
+		http.ServeFile(w, r, filepath.Join("html", "main.html"))
 	})
 
 	var ip_port bytes.Buffer
 	host, _ := os.Hostname()
 	addrs, _ := net.LookupIP(host)
+	//fmt.Println(addrs)
 	for _, addr := range addrs {
 		if ipv4 := addr.To4(); ipv4 != nil {
 			switch ipv4[0] {
@@ -72,7 +68,9 @@ func main() {
 	}
 
 	fmt.Println(ip_port.String())
-	if err := http.ListenAndServe(ip_port.String(), nil); err != nil {
+
+	if err := http.ListenAndServe("240d:1a:6b3:3d00:94de:2131:3349:f3a0", nil); err != nil {
+		//if err := http.ListenAndServe(ip_port.String(), nil); err != nil {
 		log.Println("falied to start")
 	}
 }
