@@ -114,14 +114,17 @@ func main() {
 				myIP := ipv4.String()
 				ip_port.WriteString(myIP)
 				ip_port.WriteString(port)
+				goto out
 			case 172:
 				myIP := ipv4.String()
 				ip_port.WriteString(myIP) //ip_port.WriteByte()
 				ip_port.WriteString(port)
+				goto out
 			}
 		}
 	}
 
+out:
 	fmt.Println(ip_port.String())
 
 	//if err := http.ListenAndServe("240d:1a:6b3:3d00:94de:2131:3349:f3a0", nil); err != nil {
