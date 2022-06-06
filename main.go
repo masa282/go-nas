@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sync"
 )
 
@@ -76,7 +77,7 @@ func RecvHandler(w http.ResponseWriter, r *http.Request) {
 		io.Copy(dst, src)
 	}
 	fmt.Println("[+]Success!")
-	w.Write([]byte("成功！"))
+	w.Write([]byte("Success!"))
 }
 
 func DataHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,35 +100,40 @@ func main() {
 	http.Handle("/send", &templateHandler{filename: "send.html"})
 	http.HandleFunc("/recv", RecvHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Someone Acessed!")
+		fmt.Println("[+]Access succeeded!")
 		http.ServeFile(w, r, filepath.Join("html", "main.html"))
 	})
 
 	var ip_port bytes.Buffer
-	host, _ := os.Hostname()
-	addrs, _ := net.LookupIP(host)
-	//fmt.Println(addrs)
-	for _, addr := range addrs {
-		if ipv4 := addr.To4(); ipv4 != nil {
-			switch ipv4[0] {
-			case 192:
-				myIP := ipv4.String()
+	if runtime.GOOS == "windows" {
+		host, _ := os.Hostname()
+		addrs, _ := net.LookupIP(host)
+		//fmt.Println("[+]Host Name: ", host)
+		//fmt.Println("[+]Addrs: ", addrs)
+		for _, addr := range addrs {
+			if ipv4 := addr.To4(); ipv4 != nil {
+				if ipv4[0] == 192 || ipv4[0] == 172 {
+					myIP := ipv4.String()
+					ip_port.WriteString(myIP)
+					ip_port.WriteString(port)
+					break
+				}
+			}
+		}
+	} else { //runtime.GOOS == "linux"
+		netInterfaceAddresses, _ := net.InterfaceAddrs()
+		for _, netInterfaceAddress := range netInterfaceAddresses {
+			networkIp, ok := netInterfaceAddress.(*net.IPNet)
+			if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
+				myIP := networkIp.IP.String()
 				ip_port.WriteString(myIP)
 				ip_port.WriteString(port)
-				goto out
-			case 172:
-				myIP := ipv4.String()
-				ip_port.WriteString(myIP) //ip_port.WriteByte()
-				ip_port.WriteString(port)
-				goto out
 			}
 		}
 	}
 
-out:
 	fmt.Println(ip_port.String())
 
-	//if err := http.ListenAndServe("240d:1a:6b3:3d00:94de:2131:3349:f3a0", nil); err != nil {
 	if err := http.ListenAndServe(ip_port.String(), nil); err != nil {
 		log.Println("[-]Falied to start")
 	}
